@@ -1,0 +1,1674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Play Store Reviews Analysis</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f8f9fa;
+      display: flex;
+      justify-content: center;
+    }
+
+    .container {
+      text-align: center;
+      width: 100%;
+      max-width: 1000px;
+    }
+
+    .button-group {
+      margin: 40px 0 20px;
+    }
+
+    .button-group button {
+      background-color: white;
+      color: #333;
+      border: 2px solid #ccc;
+      border-radius: 6px;
+      padding: 12px 24px;
+      font-size: 20px;
+      margin: 0 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .button-group button:hover {
+      border-color: #888;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    .button-group button.active {
+      background-color: #f0f0f0;
+      border-color: #666;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    .main-content {
+      width: 100%;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 6px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .chart-container {
+      width: 100%;
+      height: 400px;
+      margin: 20px 0;
+    }
+    
+    .chart-with-controls {
+      display: flex;
+      margin: 20px 0;
+    }
+    
+    .chart-container-with-controls {
+      flex: 1;
+      height: 400px;
+    }
+    
+    .chart-controls {
+      width: 200px;
+      margin-left: 20px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 10px;
+      background-color: #f8f9fa;
+    }
+    
+    .chart-controls-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #ddd;
+    }
+    
+    .chart-controls-header button {
+      padding: 5px 10px;
+      background-color: #f0f0f0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    
+    .chart-controls-header button:hover {
+      background-color: #e0e0e0;
+    }
+    
+    .category-list {
+      max-height: 320px;
+      overflow-y: auto;
+      padding-right: 5px;
+    }
+    
+    .category-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    
+    .category-color {
+      width: 16px;
+      height: 16px;
+      margin-right: 8px;
+      border-radius: 3px;
+    }
+    
+    .category-checkbox {
+      margin-right: 8px;
+    }
+    
+    /* Week comparison styles */
+    .week-comparison {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    
+    .week-column {
+      flex: 1;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 15px;
+      background-color: #f8f9fa;
+    }
+    
+    .week-selector {
+      margin-bottom: 15px;
+    }
+    
+    .week-selector select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    
+    .pie-chart-container {
+      height: 400px;
+      margin-top: 20px;
+    }
+    
+    .histogram-container {
+      width: 100%;
+      height: auto;
+      min-height: 400px;
+      margin-top: 30px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 15px;
+      background-color: #f8f9fa;
+    }
+
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 200px;
+      font-size: 18px;
+      color: #666;
+    }
+
+    .error {
+      color: #d9534f;
+      padding: 20px;
+      text-align: center;
+      border: 1px solid #d9534f;
+      border-radius: 4px;
+      margin: 20px 0;
+    }
+    
+    /* Reviews section styles */
+    .reviews-controls {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      gap: 20px;
+    }
+    
+    .reviews-selector {
+      flex: 1;
+    }
+    
+    .reviews-selector select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    
+    .reviews-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    
+    .reviews-table th, .reviews-table td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+      vertical-align: top;
+    }
+    
+    .reviews-table th {
+      background-color: #f8f9fa;
+      font-weight: bold;
+    }
+    
+    .reviews-table tr:hover {
+      background-color: #f5f5f5;
+    }
+    
+    .review-text {
+      max-width: 500px;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+    
+    .review-rating {
+      vertical-align: top;
+    }
+    
+    .star {
+      color: #ffc107;
+      margin-right: 2px;
+    }
+    
+    .no-reviews {
+      text-align: center;
+      padding: 30px;
+      color: #666;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="button-group">
+      <button id="overview-btn" onclick="showContent('overview')" class="active">Overview</button>
+      <button id="week-btn" onclick="showContent('week')">Week Compare</button>
+      <button id="reviews-btn" onclick="showContent('reviews')">Reviews</button>
+    </div>
+
+    <div class="main-content" id="content">
+      <div class="loading">Loading data...</div>
+    </div>
+  </div>
+
+  <script>
+    // Global variables
+    let reviewData = [];
+    let isDataLoaded = false;
+    
+    // URL parameter handling
+    function getUrlParams() {
+      const params = new URLSearchParams(window.location.search);
+      const categoriesParam = params.get('categories');
+      return {
+        section: params.get('section') || 'overview',
+        week: params.get('week'),
+        categories: categoriesParam ? categoriesParam.split(',') : null
+      };
+    }
+    
+    function updateUrl(section, week = null, categories = null) {
+      const url = new URL(window.location);
+      url.searchParams.set('section', section);
+      if (week) {
+        url.searchParams.set('week', week);
+      } else {
+        url.searchParams.delete('week');
+      }
+      if (categories && categories.length > 0) {
+        url.searchParams.set('categories', categories.join(','));
+      } else {
+        url.searchParams.delete('categories');
+      }
+      window.history.replaceState({}, '', url);
+    }
+    
+    // Function to update categories in URL based on current checkbox states
+    function updateCategoriesInUrl() {
+      const selectedCategories = [];
+      document.querySelectorAll('.category-checkbox:checked').forEach(checkbox => {
+        selectedCategories.push(checkbox.dataset.category);
+      });
+      
+      const currentParams = getUrlParams();
+      updateUrl(currentParams.section, currentParams.week, selectedCategories.length > 0 ? selectedCategories : null);
+    }
+    
+    // Function to update categories in URL based on reviews dropdown selections
+    function updateCategoriesFromReviewsDropdown() {
+      const selectedCategories = [];
+      const checkboxes = document.querySelectorAll('.category-dropdown-list input[type="checkbox"]:checked');
+      checkboxes.forEach(checkbox => {
+        selectedCategories.push(checkbox.value);
+      });
+      
+      const currentParams = getUrlParams();
+      updateUrl(currentParams.section, currentParams.week, selectedCategories.length > 0 ? selectedCategories : null);
+    }
+    
+    // Global color mapping to ensure consistent colors across all charts
+    const globalCategoryColors = {
+      'UI': 'hsl(45, 70%, 70%)',
+      'Crash': 'hsl(180, 70%, 70%)',
+      'Battery': 'hsl(330, 70%, 70%)',
+      'Memory': 'hsl(270, 70%, 70%)',
+      'Slow': 'hsl(300, 70%, 70%)',
+      'Privacy': 'hsl(120, 70%, 70%)',
+      'Policy': 'hsl(240, 70%, 70%)',
+      'Tabs': 'hsl(195, 70%, 70%)',
+      'Webcompat': 'hsl(0, 70%, 70%)',
+      'Addons': 'hsl(150, 70%, 70%)',
+      'Bookmarks': 'hsl(30, 70%, 70%)',
+      'Networking': 'hsl(210, 70%, 70%)',
+      'Reloading': 'hsl(15, 70%, 70%)',
+      'Stuttering': 'hsl(285, 70%, 70%)',
+      'Video': 'hsl(60, 70%, 70%)',
+      'Pageload': 'hsl(90, 70%, 70%)',
+      'Scrolling': 'hsl(165, 70%, 70%)',
+      'Sync': 'hsl(345, 70%, 70%)',
+      'Translations': 'hsl(225, 70%, 70%)',
+      'Youtube': 'hsl(315, 70%, 70%)'
+    };
+    
+    // Load the review summary data
+    fetch('results/review-summary.json')
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.json();
+      })
+      .then(data => {
+        reviewData = data;
+        isDataLoaded = true;
+        
+        // Check URL parameters and show appropriate section
+        const urlParams = getUrlParams();
+        showContent(urlParams.section, urlParams.week);
+      })
+      .catch(error => {
+        console.error('Error loading the data:', error);
+        document.getElementById('content').innerHTML = `
+          <div class="error">
+            <h2>Error Loading Data</h2>
+            <p>Could not load the review summary data. Please make sure review-summary.json exists and is valid.</p>
+            <p>Error details: ${error.message}</p>
+          </div>
+        `;
+      });
+
+    // Function to set active button
+    function setActiveButton(section) {
+      // Remove active class from all buttons
+      document.querySelectorAll('.button-group button').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      
+      // Add active class to the clicked button
+      document.getElementById(`${section}-btn`).classList.add('active');
+    }
+
+    // Function to show content based on section
+    function showContent(section, paramWeek = null) {
+      setActiveButton(section);
+      
+      const content = document.getElementById('content');
+      
+      if (!isDataLoaded) {
+        content.innerHTML = '<div class="loading">Loading data...</div>';
+        return;
+      }
+      
+      // Get current parameters to preserve week and categories
+      const currentParams = getUrlParams();
+      
+      // If no paramWeek is provided but we have a current week in URL, use it for all sections
+      if (!paramWeek && currentParams.week) {
+        paramWeek = currentParams.week;
+      }
+      
+      // Update URL when section changes, preserving week and categories
+      updateUrl(section, paramWeek, currentParams.categories);
+      
+      if (section === 'overview') {
+        generateOverview(content);
+      } else if (section === 'week') {
+        generateWeekComparison(content, paramWeek);
+      } else if (section === 'reviews') {
+        generateReviewsSection(content, paramWeek);
+      }
+    }
+
+    // Function to generate the overview section
+    function generateOverview(container) {
+      // Clear the container
+      container.innerHTML = '';
+      
+      // Add heading
+      const heading = document.createElement('h2');
+      heading.textContent = 'Overview';
+      container.appendChild(heading);
+      
+      // Create container for the positive vs negative chart
+      const overallChartContainer = document.createElement('div');
+      overallChartContainer.className = 'chart-container';
+      overallChartContainer.innerHTML = '<canvas id="overallChart"></canvas>';
+      container.appendChild(overallChartContainer);
+      
+      // Create container for the categories chart with controls
+      const categoriesChartWithControls = document.createElement('div');
+      categoriesChartWithControls.className = 'chart-with-controls';
+      
+      // Chart container
+      const categoriesChartContainer = document.createElement('div');
+      categoriesChartContainer.className = 'chart-container-with-controls';
+      categoriesChartContainer.innerHTML = '<canvas id="categoriesChart"></canvas>';
+      
+      // Controls container
+      const categoriesChartControls = document.createElement('div');
+      categoriesChartControls.className = 'chart-controls';
+      categoriesChartControls.innerHTML = `
+        <div class="chart-controls-header">
+          <button id="selectAllBtn">Select All</button>
+          <button id="hideAllBtn">Hide All</button>
+        </div>
+        <div id="categoryList" class="category-list"></div>
+      `;
+      
+      // Add both to the container
+      categoriesChartWithControls.appendChild(categoriesChartContainer);
+      categoriesChartWithControls.appendChild(categoriesChartControls);
+      container.appendChild(categoriesChartWithControls);
+      
+      // Generate the charts
+      generateOverallChart();
+      generateCategoriesChart();
+    }
+
+    // Function to generate the overall positive vs negative chart
+    function generateOverallChart() {
+      const ctx = document.getElementById('overallChart').getContext('2d');
+      
+      // Prepare data for the chart
+      const labels = reviewData.map(item => item.startDate);
+      const positiveData = reviewData.map(item => item.PositiveCount);
+      const negativeData = reviewData.map(item => item.NegativeCount);
+      
+      // Check if we need to add annotation for selected week
+      const urlParams = getUrlParams();
+      const annotations = {};
+      
+      if (urlParams.week) {
+        const weekIndex = labels.indexOf(urlParams.week);
+        if (weekIndex !== -1) {
+          annotations.selectedWeek = {
+            type: 'line',
+            xMin: weekIndex,
+            xMax: weekIndex,
+            borderColor: 'rgba(255, 99, 132, 0.8)',
+            borderWidth: 3,
+            borderDash: [5, 5],
+            label: {
+              content: 'Selected Week',
+              enabled: true,
+              position: 'top'
+            }
+          };
+        }
+      }
+      
+      // Create the chart
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Positive',
+              data: positiveData,
+              borderColor: 'rgba(40, 167, 69, 1)',
+              backgroundColor: 'rgba(40, 167, 69, 0.1)',
+              borderWidth: 2,
+              fill: true,
+              tension: 0.1
+            },
+            {
+              label: 'Negative',
+              data: negativeData,
+              borderColor: 'rgba(220, 53, 69, 1)',
+              backgroundColor: 'rgba(220, 53, 69, 0.1)',
+              borderWidth: 2,
+              fill: true,
+              tension: 0.1
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            title: {
+              display: true,
+              text: 'Positive vs Negative Reviews Over Time',
+              font: {
+                size: 16
+              }
+            },
+            legend: {
+              position: 'top'
+            },
+            tooltip: {
+              mode: 'index',
+              intersect: false
+            },
+            annotation: {
+              annotations: annotations
+            }
+          },
+          scales: {
+            x: {
+              title: {
+                display: true,
+                text: 'Week Starting'
+              }
+            },
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Number of Reviews'
+              }
+            }
+          },
+          onClick: (event, elements) => {
+            if (elements.length > 0) {
+              const dataIndex = elements[0].index;
+              const clickedWeek = reviewData[dataIndex].startDate;
+              const currentParams = getUrlParams();
+              updateUrl('overview', clickedWeek, currentParams.categories);
+              // Regenerate charts to update annotations
+              generateOverview(document.getElementById('content'));
+            }
+          }
+        }
+      });
+    }
+
+    // Function to generate the week comparison section
+    function generateWeekComparison(container, paramWeek = null) {
+      // Clear the container
+      container.innerHTML = '';
+      
+      // Add heading
+      const heading = document.createElement('h2');
+      heading.textContent = 'Week Comparison';
+      container.appendChild(heading);
+      
+      // Create the week comparison container
+      const weekComparisonContainer = document.createElement('div');
+      weekComparisonContainer.className = 'week-comparison';
+      
+      // Get all available weeks (sorted by date, oldest first)
+      const availableWeeks = reviewData.map(item => ({
+        startDate: item.startDate,
+        endDate: item.endDate,
+        label: `${item.startDate} to ${item.endDate}`
+      })).sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+      
+      // Create left column
+      const leftColumn = document.createElement('div');
+      leftColumn.className = 'week-column';
+      
+      // Create right column
+      const rightColumn = document.createElement('div');
+      rightColumn.className = 'week-column';
+      
+      // Add week selectors and pie chart containers to each column
+      const leftWeekSelector = createWeekSelector(availableWeeks, 0);
+      const rightWeekSelector = createWeekSelector(availableWeeks, 1);
+      
+      const leftPieChartContainer = document.createElement('div');
+      leftPieChartContainer.className = 'pie-chart-container';
+      leftPieChartContainer.innerHTML = '<canvas id="leftPieChart"></canvas>';
+      
+      const rightPieChartContainer = document.createElement('div');
+      rightPieChartContainer.className = 'pie-chart-container';
+      rightPieChartContainer.innerHTML = '<canvas id="rightPieChart"></canvas>';
+      
+      leftColumn.appendChild(leftWeekSelector);
+      leftColumn.appendChild(leftPieChartContainer);
+      
+      rightColumn.appendChild(rightWeekSelector);
+      rightColumn.appendChild(rightPieChartContainer);
+      
+      // Create histogram container
+      const histogramContainer = document.createElement('div');
+      histogramContainer.className = 'histogram-container';
+      histogramContainer.innerHTML = '<canvas id="diffHistogram"></canvas>';
+      
+      // Add columns and histogram to the container
+      weekComparisonContainer.appendChild(leftColumn);
+      weekComparisonContainer.appendChild(rightColumn);
+      weekComparisonContainer.appendChild(histogramContainer);
+      container.appendChild(weekComparisonContainer);
+      
+      // Generate initial pie charts and histogram
+      updatePieCharts();
+      
+      // Function to create a week selector
+      function createWeekSelector(weeks, columnIndex) {
+        const selectorContainer = document.createElement('div');
+        selectorContainer.className = 'week-selector';
+        
+        const select = document.createElement('select');
+        select.id = `week-select-${columnIndex}`;
+        
+        weeks.forEach((week, index) => {
+          const option = document.createElement('option');
+          option.value = index;
+          option.textContent = week.label;
+          select.appendChild(option);
+        });
+        
+        // Set default selection based on URL parameter or latest two weeks
+        if (paramWeek && columnIndex === 1) {
+          // For the right column (comparison week), find the specified week
+          const weekIndex = weeks.findIndex(week => week.startDate === paramWeek);
+          if (weekIndex !== -1) {
+            select.selectedIndex = weekIndex;
+            // Set left column to the week before (if available)
+            const leftSelect = document.getElementById('week-select-0');
+            if (leftSelect && weekIndex > 0) {
+              leftSelect.selectedIndex = weekIndex - 1;
+            }
+          } else {
+            select.selectedIndex = columnIndex;
+          }
+        } else {
+          select.selectedIndex = columnIndex;
+        }
+        
+        // Add event listener for selection change
+        select.addEventListener('change', () => {
+          updatePieCharts();
+          // Update URL with the selected week for the comparison column
+          if (columnIndex === 1) {
+            const selectedWeek = availableWeeks[select.selectedIndex];
+            updateUrl('week', selectedWeek.startDate);
+          }
+        });
+        
+        selectorContainer.appendChild(select);
+        return selectorContainer;
+      }
+      
+      // Function to update pie charts and histogram based on selected weeks
+      function updatePieCharts() {
+        const leftSelectIndex = parseInt(document.getElementById('week-select-0').value);
+        const rightSelectIndex = parseInt(document.getElementById('week-select-1').value);
+        
+        const leftWeekData = reviewData.find(item => 
+          item.startDate === availableWeeks[leftSelectIndex].startDate && 
+          item.endDate === availableWeeks[leftSelectIndex].endDate
+        );
+        
+        const rightWeekData = reviewData.find(item => 
+          item.startDate === availableWeeks[rightSelectIndex].startDate && 
+          item.endDate === availableWeeks[rightSelectIndex].endDate
+        );
+        
+        // Clear existing charts if they exist
+        const leftChartElement = document.getElementById('leftPieChart');
+        const rightChartElement = document.getElementById('rightPieChart');
+        const histogramElement = document.getElementById('diffHistogram');
+        
+        // Destroy existing charts
+        Chart.getChart(leftChartElement)?.destroy();
+        Chart.getChart(rightChartElement)?.destroy();
+        Chart.getChart(histogramElement)?.destroy();
+        
+        // Generate new charts
+        generatePieChart('leftPieChart', leftWeekData, availableWeeks[leftSelectIndex].label);
+        generatePieChart('rightPieChart', rightWeekData, availableWeeks[rightSelectIndex].label);
+        
+        // Generate difference histogram
+        generateDifferenceHistogram('diffHistogram', leftWeekData, rightWeekData, 
+          availableWeeks[leftSelectIndex].label, availableWeeks[rightSelectIndex].label);
+      }
+      
+      // Function to generate a histogram showing the difference between two weeks
+      function generateDifferenceHistogram(chartId, week1Data, week2Data, week1Label, week2Label) {
+        const ctx = document.getElementById(chartId).getContext('2d');
+        
+        // Get all unique categories from both weeks (excluding Satisfied)
+        const allCategories = new Set([
+          ...Object.keys(week1Data.Categories).filter(cat => cat !== 'Satisfied'),
+          ...Object.keys(week2Data.Categories).filter(cat => cat !== 'Satisfied')
+        ]);
+        
+        // Sort categories alphabetically to ensure consistent ordering
+        const sortedCategories = Array.from(allCategories).sort();
+        
+        // Calculate differences
+        const differences = sortedCategories.map(category => {
+          return (week2Data.Categories[category] || 0) - (week1Data.Categories[category] || 0);
+        });
+        
+        // Create labels with differences
+        const labelsWithDiffs = sortedCategories.map((category, index) => {
+          const diff = differences[index];
+          const sign = diff >= 0 ? '+' : '';
+          return `${category} (${sign}${diff})`;
+        });
+        
+        // Generate colors for each category (consistent with pie charts)
+        const backgroundColors = sortedCategories.map(category => {
+          // Use the global color mapping if available, otherwise generate a color
+          if (globalCategoryColors[category]) {
+            const color = globalCategoryColors[category];
+            // Make negative differences more transparent
+            const index = sortedCategories.indexOf(category);
+            if (differences[index] < 0) {
+              return color.replace('70%)', '50%)');
+            }
+            return color;
+          } else {
+            // Generate a hash code for the category name
+            const hashCode = category.split('').reduce((a, b) => {
+              a = ((a << 5) - a) + b.charCodeAt(0);
+              return a & a;
+            }, 0);
+            
+            // Use the hash to generate a hue value
+            const hue = Math.abs(hashCode % 360);
+            return `hsl(${hue}, 70%, 70%)`;
+          }
+        });
+        
+        // Create the chart
+        return new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labelsWithDiffs,
+            datasets: [{
+              label: `Difference (${week2Label} - ${week1Label})`,
+              data: differences,
+              backgroundColor: backgroundColors,
+              borderColor: 'rgba(0, 0, 0, 0.1)',
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            indexAxis: 'y',
+            plugins: {
+              title: {
+                display: true,
+                text: `Category Differences: ${week2Label} compared to ${week1Label}`,
+                font: {
+                  size: 18
+                }
+              },
+              legend: {
+                display: false
+              },
+              // Ensure all bars are visible
+              datalabels: {
+                display: true,
+                align: 'end',
+                anchor: 'end'
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    const value = context.raw;
+                    const sign = value >= 0 ? '+' : '';
+                    return `Difference: ${sign}${value}`;
+                  }
+                }
+              }
+            },
+            scales: {
+              x: {
+                title: {
+                  display: true,
+                  text: 'Difference in Number of Reviews'
+                },
+                grid: {
+                  color: 'rgba(0, 0, 0, 0.05)'
+                }
+              },
+              y: {
+                title: {
+                  display: true,
+                  text: 'Categories'
+                },
+                grid: {
+                  display: false
+                },
+                // Ensure all categories are shown
+                ticks: {
+                  autoSkip: false,
+                  font: {
+                    size: 11
+                  }
+                }
+              }
+            },
+            // Adjust the layout to fit all categories
+            layout: {
+              padding: {
+                left: 10,
+                right: 10,
+                top: 0,
+                bottom: 0
+              }
+            }
+          }
+        });
+      }
+      
+      // Function to generate a pie chart for a specific week
+      function generatePieChart(chartId, weekData, weekLabel) {
+        const ctx = document.getElementById(chartId).getContext('2d');
+        
+        // Get all categories and their counts (excluding Satisfied)
+        const categories = Object.keys(weekData.Categories).filter(cat => cat !== 'Satisfied');
+        const counts = categories.map(category => weekData.Categories[category]);
+        
+        // Generate colors for each category (consistent colors for the same category)
+        const backgroundColors = categories.map(category => {
+          // Use the global color mapping if available, otherwise generate a color
+          if (globalCategoryColors[category]) {
+            return globalCategoryColors[category];
+          } else {
+            // Generate a hash code for the category name
+            const hashCode = category.split('').reduce((a, b) => {
+              a = ((a << 5) - a) + b.charCodeAt(0);
+              return a & a;
+            }, 0);
+            
+            // Use the hash to generate a hue value
+            const hue = Math.abs(hashCode % 360);
+            return `hsl(${hue}, 70%, 70%)`;
+          }
+        });
+        
+        // Create labels with counts
+        const labelsWithCounts = categories.map((category, index) => `${category} (${counts[index]})`);
+        
+        // Create the chart
+        return new Chart(ctx, {
+          type: 'pie',
+          data: {
+            labels: labelsWithCounts,
+            datasets: [{
+              data: counts,
+              backgroundColor: backgroundColors,
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              title: {
+                display: true,
+                text: `Negative Reviews: ${weekLabel}`,
+                font: {
+                  size: 18
+                }
+              },
+              legend: {
+                position: 'bottom',
+                labels: {
+                  boxWidth: 15,
+                  padding: 15,
+                  font: {
+                    size: 13
+                  }
+                }
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    const label = context.label || '';
+                    const value = context.raw || 0;
+                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                    const percentage = Math.round((value / total) * 100);
+                    return `${label}: ${value} (${percentage}%)`;
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+    }
+    
+    // Function to generate the categories chart
+    function generateCategoriesChart() {
+      const ctx = document.getElementById('categoriesChart').getContext('2d');
+      
+      // Prepare data for the chart
+      const labels = reviewData.map(item => item.startDate);
+      
+      // Check if we need to add annotation for selected week
+      const urlParams = getUrlParams();
+      const annotations = {};
+      
+      if (urlParams.week) {
+        const weekIndex = labels.indexOf(urlParams.week);
+        if (weekIndex !== -1) {
+          annotations.selectedWeek = {
+            type: 'line',
+            xMin: weekIndex,
+            xMax: weekIndex,
+            borderColor: 'rgba(255, 99, 132, 0.8)',
+            borderWidth: 3,
+            borderDash: [5, 5],
+            label: {
+              content: 'Selected Week',
+              enabled: true,
+              position: 'top'
+            }
+          };
+        }
+      }
+      
+      // Get all unique categories
+      const allCategories = new Set();
+      reviewData.forEach(item => {
+        Object.keys(item.Categories).forEach(category => {
+          allCategories.add(category);
+        });
+      });
+      
+      // Sort categories by total count (descending)
+      const sortedCategories = Array.from(allCategories).sort((a, b) => {
+        const totalA = reviewData.reduce((sum, item) => sum + (item.Categories[a] || 0), 0);
+        const totalB = reviewData.reduce((sum, item) => sum + (item.Categories[b] || 0), 0);
+        return totalB - totalA;
+      });
+      
+      // Use the global color mapping for the categories chart
+      const categoryColors = {};
+      sortedCategories.forEach(category => {
+        let hue;
+        
+        if (globalCategoryColors[category]) {
+          // Extract the hue from the global color mapping
+          const colorMatch = globalCategoryColors[category].match(/hsl\((\d+)/);
+          hue = colorMatch ? parseInt(colorMatch[1]) : 0;
+        } else {
+          // Generate a hash code for the category name
+          const hashCode = category.split('').reduce((a, b) => {
+            a = ((a << 5) - a) + b.charCodeAt(0);
+            return a & a;
+          }, 0);
+          
+          // Use the hash to generate a hue value
+          hue = Math.abs(hashCode % 360);
+        }
+        
+        categoryColors[category] = {
+          borderColor: `hsl(${hue}, 70%, 50%)`,
+          backgroundColor: `hsl(${hue}, 70%, 50%, 0.1)`
+        };
+      });
+      
+      // Initially show top 10 categories
+      const initialVisibleCategories = new Set(sortedCategories.slice(0, 10));
+      
+      // Generate datasets for all categories
+      const allDatasets = sortedCategories.map(category => {
+        return {
+          label: category,
+          data: reviewData.map(item => item.Categories[category] || 0),
+          borderColor: categoryColors[category].borderColor,
+          backgroundColor: categoryColors[category].backgroundColor,
+          borderWidth: 2,
+          fill: false,
+          tension: 0.1,
+          hidden: !initialVisibleCategories.has(category)
+        };
+      });
+      
+      // Create the chart
+      const chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: allDatasets
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            title: {
+              display: true,
+              text: 'Categories Over Time',
+              font: {
+                size: 16
+              }
+            },
+            legend: {
+              display: false // Hide the default legend since we're using custom controls
+            },
+            tooltip: {
+              mode: 'index',
+              intersect: false
+            },
+            annotation: {
+              annotations: annotations
+            }
+          },
+          scales: {
+            x: {
+              title: {
+                display: true,
+                text: 'Week Starting'
+              }
+            },
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Number of Reviews'
+              }
+            }
+          },
+          onClick: (event, elements) => {
+            if (elements.length > 0) {
+              const dataIndex = elements[0].index;
+              const clickedWeek = reviewData[dataIndex].startDate;
+              const currentParams = getUrlParams();
+              updateUrl('overview', clickedWeek, currentParams.categories);
+              // Regenerate charts to update annotations
+              generateOverview(document.getElementById('content'));
+            }
+          }
+        }
+      });
+      
+      // Populate the category list with checkboxes
+      const categoryList = document.getElementById('categoryList');
+      sortedCategories.forEach(category => {
+        const isVisible = initialVisibleCategories.has(category);
+        
+        const categoryItem = document.createElement('div');
+        categoryItem.className = 'category-item';
+        
+        const categoryColor = document.createElement('div');
+        categoryColor.className = 'category-color';
+        categoryColor.style.backgroundColor = categoryColors[category].borderColor;
+        
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'category-checkbox';
+        checkbox.checked = isVisible;
+        checkbox.dataset.category = category;
+        
+        const label = document.createElement('label');
+        label.textContent = category;
+        
+        categoryItem.appendChild(checkbox);
+        categoryItem.appendChild(categoryColor);
+        categoryItem.appendChild(label);
+        categoryList.appendChild(categoryItem);
+        
+        // Add event listener to toggle visibility
+        checkbox.addEventListener('change', function() {
+          const datasetIndex = allDatasets.findIndex(d => d.label === category);
+          chart.data.datasets[datasetIndex].hidden = !this.checked;
+          chart.update();
+          
+          // Update URL with currently selected categories
+          updateCategoriesInUrl();
+        });
+      });
+      
+      // Add event listeners for Select All and Hide All buttons
+      document.getElementById('selectAllBtn').addEventListener('click', function() {
+        document.querySelectorAll('.category-checkbox').forEach(checkbox => {
+          checkbox.checked = true;
+          const category = checkbox.dataset.category;
+          const datasetIndex = allDatasets.findIndex(d => d.label === category);
+          chart.data.datasets[datasetIndex].hidden = false;
+        });
+        chart.update();
+        updateCategoriesInUrl();
+      });
+      
+      document.getElementById('hideAllBtn').addEventListener('click', function() {
+        document.querySelectorAll('.category-checkbox').forEach(checkbox => {
+          checkbox.checked = false;
+          const category = checkbox.dataset.category;
+          const datasetIndex = allDatasets.findIndex(d => d.label === category);
+          chart.data.datasets[datasetIndex].hidden = true;
+        });
+        chart.update();
+        updateCategoriesInUrl();
+      });
+      
+      // Apply URL parameter categories if they exist
+      const currentUrlParams = getUrlParams();
+      if (currentUrlParams.categories) {
+        // First, uncheck all categories
+        document.querySelectorAll('.category-checkbox').forEach(checkbox => {
+          checkbox.checked = false;
+          const category = checkbox.dataset.category;
+          const datasetIndex = allDatasets.findIndex(d => d.label === category);
+          chart.data.datasets[datasetIndex].hidden = true;
+        });
+        
+        // Then check only the categories from URL
+        currentUrlParams.categories.forEach(categoryName => {
+          const checkbox = document.querySelector(`.category-checkbox[data-category="${categoryName}"]`);
+          if (checkbox) {
+            checkbox.checked = true;
+            const datasetIndex = allDatasets.findIndex(d => d.label === categoryName);
+            if (datasetIndex !== -1) {
+              chart.data.datasets[datasetIndex].hidden = false;
+            }
+          }
+        });
+        
+        chart.update();
+      }
+    }
+    
+    // Function to generate the reviews section
+    function generateReviewsSection(container, paramWeek = null) {
+      // Clear the container
+      container.innerHTML = '';
+      
+      // Add heading
+      const heading = document.createElement('h2');
+      heading.textContent = 'Reviews';
+      container.appendChild(heading);
+      
+      // Create the controls container
+      const controlsContainer = document.createElement('div');
+      controlsContainer.className = 'reviews-controls';
+      
+      // Get all available weeks (sorted by date, oldest first)
+      const availableWeeks = reviewData.map(item => ({
+        startDate: item.startDate,
+        endDate: item.endDate,
+        label: `${item.startDate} to ${item.endDate}`,
+        file: `results/results-${item.startDate}-to-${item.endDate}.json`
+      })).sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+      
+      // Get all unique categories across all weeks
+      const allCategories = new Set();
+      reviewData.forEach(item => {
+        Object.keys(item.Categories).forEach(category => {
+          allCategories.add(category);
+        });
+      });
+      
+      // Sort categories alphabetically
+      const sortedCategories = Array.from(allCategories).sort();
+      
+      // Create week selector
+      const weekSelectorContainer = document.createElement('div');
+      weekSelectorContainer.className = 'reviews-selector';
+      
+      const weekLabel = document.createElement('label');
+      weekLabel.textContent = 'Select Week: ';
+      weekLabel.htmlFor = 'reviews-week-select';
+      weekLabel.style.marginBottom = '8px';
+      weekLabel.style.display = 'block';
+      
+      const weekSelect = document.createElement('select');
+      weekSelect.id = 'reviews-week-select';
+      
+      availableWeeks.forEach((week, index) => {
+        const option = document.createElement('option');
+        option.value = index;
+        option.textContent = week.label;
+        weekSelect.appendChild(option);
+      });
+      
+      // Set default selection based on URL parameter or most recent week
+      if (paramWeek) {
+        const weekIndex = availableWeeks.findIndex(week => week.startDate === paramWeek);
+        if (weekIndex !== -1) {
+          weekSelect.selectedIndex = weekIndex;
+        } else {
+          weekSelect.selectedIndex = availableWeeks.length - 1;
+        }
+      } else {
+        weekSelect.selectedIndex = availableWeeks.length - 1;
+      }
+      
+      weekSelectorContainer.appendChild(weekLabel);
+      weekSelectorContainer.appendChild(weekSelect);
+      
+      // Create category selector (custom dropdown with checkboxes)
+      const categorySelectorContainer = document.createElement('div');
+      categorySelectorContainer.className = 'reviews-selector';
+      categorySelectorContainer.style.position = 'relative';
+      
+      const categoryLabel = document.createElement('label');
+      categoryLabel.textContent = 'Filter by Category: ';
+      categoryLabel.htmlFor = 'reviews-category-dropdown';
+      categoryLabel.style.marginBottom = '8px';
+      categoryLabel.style.display = 'block';
+      
+      const categoryDropdown = document.createElement('div');
+      categoryDropdown.id = 'reviews-category-dropdown';
+      categoryDropdown.className = 'category-dropdown';
+      categoryDropdown.style.cssText = `
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        padding: 8px;
+        background: white;
+        cursor: pointer;
+        min-height: 20px;
+        font-size: 14px;
+      `;
+      
+      const categoryDropdownList = document.createElement('div');
+      categoryDropdownList.className = 'category-dropdown-list';
+      categoryDropdownList.style.cssText = `
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #ccc;
+        border-top: none;
+        border-radius: 0 0 4px 4px;
+        max-height: 400px;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none;
+      `;
+      
+      // Add Select All and Hide All options at the top
+      const selectAllItem = document.createElement('div');
+      selectAllItem.style.cssText = `
+        padding: 8px;
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        border-bottom: 1px solid #eee;
+        font-weight: bold;
+        background-color: #f8f9fa;
+      `;
+      selectAllItem.addEventListener('mouseenter', () => {
+        selectAllItem.style.backgroundColor = '#e9ecef';
+      });
+      selectAllItem.addEventListener('mouseleave', () => {
+        selectAllItem.style.backgroundColor = '#f8f9fa';
+      });
+      selectAllItem.textContent = 'Select All';
+      selectAllItem.addEventListener('click', () => {
+        sortedCategories.forEach(category => {
+          categoryCheckboxes[category].checked = true;
+        });
+        updateCategoryDropdownDisplay();
+        updateReviewsTable();
+        // Update URL with selected categories
+        updateCategoriesFromReviewsDropdown();
+      });
+      categoryDropdownList.appendChild(selectAllItem);
+      
+      const hideAllItem = document.createElement('div');
+      hideAllItem.style.cssText = `
+        padding: 8px;
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        border-bottom: 1px solid #eee;
+        font-weight: bold;
+        background-color: #f8f9fa;
+        margin-bottom: 4px;
+      `;
+      hideAllItem.addEventListener('mouseenter', () => {
+        hideAllItem.style.backgroundColor = '#e9ecef';
+      });
+      hideAllItem.addEventListener('mouseleave', () => {
+        hideAllItem.style.backgroundColor = '#f8f9fa';
+      });
+      hideAllItem.textContent = 'Hide All';
+      hideAllItem.addEventListener('click', () => {
+        sortedCategories.forEach(category => {
+          categoryCheckboxes[category].checked = false;
+        });
+        updateCategoryDropdownDisplay();
+        updateReviewsTable();
+        // Update URL with selected categories
+        updateCategoriesFromReviewsDropdown();
+      });
+      categoryDropdownList.appendChild(hideAllItem);
+      
+      // Create checkboxes for each category
+      const categoryCheckboxes = {};
+      sortedCategories.forEach(category => {
+        const categoryItem = document.createElement('div');
+        categoryItem.style.cssText = `
+          padding: 8px;
+          display: flex;
+          align-items: center;
+          cursor: pointer;
+        `;
+        categoryItem.addEventListener('mouseenter', () => {
+          categoryItem.style.backgroundColor = '#f5f5f5';
+        });
+        categoryItem.addEventListener('mouseleave', () => {
+          categoryItem.style.backgroundColor = 'white';
+        });
+        
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = `category-checkbox-${category}`;
+        checkbox.value = category;
+        checkbox.style.marginRight = '8px';
+        
+        const label = document.createElement('label');
+        label.htmlFor = `category-checkbox-${category}`;
+        label.textContent = category;
+        label.style.cursor = 'pointer';
+        label.style.userSelect = 'none';
+        
+        categoryItem.appendChild(checkbox);
+        categoryItem.appendChild(label);
+        categoryDropdownList.appendChild(categoryItem);
+        
+        categoryCheckboxes[category] = checkbox;
+        
+        // Add event listener to checkbox
+        checkbox.addEventListener('change', () => {
+          updateCategoryDropdownDisplay();
+          updateReviewsTable();
+          // Update URL with selected categories
+          updateCategoriesFromReviewsDropdown();
+        });
+        
+        // Prevent dropdown from closing when clicking on checkbox area
+        categoryItem.addEventListener('click', (e) => {
+          if (e.target !== checkbox) {
+            checkbox.checked = !checkbox.checked;
+            updateCategoryDropdownDisplay();
+            updateReviewsTable();
+            // Update URL with selected categories
+            updateCategoriesFromReviewsDropdown();
+          }
+        });
+      });
+      
+      // Set default category selection based on URL parameter
+      const urlParams = getUrlParams();
+      if (urlParams.categories && urlParams.categories.length > 0) {
+        // Select the categories from URL parameter
+        sortedCategories.forEach(category => {
+          categoryCheckboxes[category].checked = urlParams.categories.includes(category);
+        });
+      } else {
+        // Select all categories by default
+        sortedCategories.forEach(category => {
+          categoryCheckboxes[category].checked = true;
+        });
+      }
+      
+      // Function to update the dropdown display text
+      function updateCategoryDropdownDisplay() {
+        const selectedCategories = sortedCategories.filter(category => 
+          categoryCheckboxes[category].checked
+        );
+        
+        if (selectedCategories.length === 0) {
+          categoryDropdown.textContent = 'No categories selected';
+          categoryDropdown.style.color = '#999';
+        } else if (selectedCategories.length === sortedCategories.length) {
+          categoryDropdown.textContent = 'All categories selected';
+          categoryDropdown.style.color = '#333';
+        } else if (selectedCategories.length <= 3) {
+          categoryDropdown.textContent = selectedCategories.join(', ');
+          categoryDropdown.style.color = '#333';
+        } else {
+          categoryDropdown.textContent = `${selectedCategories.length} categories selected`;
+          categoryDropdown.style.color = '#333';
+        }
+      }
+      
+      // Initialize display
+      updateCategoryDropdownDisplay();
+      
+      // Toggle dropdown visibility
+      categoryDropdown.addEventListener('click', () => {
+        const isVisible = categoryDropdownList.style.display === 'block';
+        categoryDropdownList.style.display = isVisible ? 'none' : 'block';
+      });
+      
+      // Close dropdown when clicking outside
+      document.addEventListener('click', (e) => {
+        if (!categorySelectorContainer.contains(e.target)) {
+          categoryDropdownList.style.display = 'none';
+        }
+      });
+      
+      categorySelectorContainer.appendChild(categoryLabel);
+      categorySelectorContainer.appendChild(categoryDropdown);
+      categorySelectorContainer.appendChild(categoryDropdownList);
+      
+      // Store reference to checkboxes for later use
+      categorySelectorContainer.categoryCheckboxes = categoryCheckboxes;
+      
+      // Create star rating selector
+      const ratingSelectorContainer = document.createElement('div');
+      ratingSelectorContainer.className = 'reviews-selector';
+      
+      const ratingLabel = document.createElement('label');
+      ratingLabel.textContent = 'Filter by Rating: ';
+      ratingLabel.htmlFor = 'reviews-rating-select';
+      ratingLabel.style.marginBottom = '8px';
+      ratingLabel.style.display = 'block';
+      
+      const ratingSelect = document.createElement('select');
+      ratingSelect.id = 'reviews-rating-select';
+      
+      // Add "All" option
+      const allRatingOption = document.createElement('option');
+      allRatingOption.value = 'All';
+      allRatingOption.textContent = 'All Ratings';
+      ratingSelect.appendChild(allRatingOption);
+      
+      // Add rating options (1-5 stars)
+      for (let i = 1; i <= 5; i++) {
+        const option = document.createElement('option');
+        option.value = i;
+        option.textContent = '★'.repeat(i);
+        ratingSelect.appendChild(option);
+      }
+      
+      ratingSelectorContainer.appendChild(ratingLabel);
+      ratingSelectorContainer.appendChild(ratingSelect);
+      
+      // Create search box container
+      const searchContainer = document.createElement('div');
+      searchContainer.className = 'reviews-selector';
+      searchContainer.style.gridColumn = 'span 3'; // Make it span across all columns
+      
+      const searchLabel = document.createElement('label');
+      searchLabel.textContent = 'Search Reviews: ';
+      searchLabel.htmlFor = 'reviews-search-input';
+      searchLabel.style.marginBottom = '8px';
+      searchLabel.style.display = 'block';
+      
+      const searchInput = document.createElement('input');
+      searchInput.type = 'text';
+      searchInput.id = 'reviews-search-input';
+      searchInput.placeholder = 'Enter text to search in reviews...';
+      searchInput.style.cssText = `
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 14px;
+        box-sizing: border-box;
+      `;
+      
+      searchContainer.appendChild(searchLabel);
+      searchContainer.appendChild(searchInput);
+      
+      // Add selectors to controls container
+      controlsContainer.appendChild(weekSelectorContainer);
+      controlsContainer.appendChild(ratingSelectorContainer);
+      controlsContainer.appendChild(categorySelectorContainer);
+      controlsContainer.appendChild(searchContainer);
+      container.appendChild(controlsContainer);
+      
+      // Create reviews table container
+      const reviewsTableContainer = document.createElement('div');
+      reviewsTableContainer.id = 'reviews-table-container';
+      container.appendChild(reviewsTableContainer);
+      
+      // Add event listeners for selectors
+      weekSelect.addEventListener('change', () => {
+        updateReviewsTable();
+        // Update URL with the selected week
+        const selectedWeek = availableWeeks[weekSelect.selectedIndex];
+        updateUrl('reviews', selectedWeek.startDate);
+      });
+      ratingSelect.addEventListener('change', updateReviewsTable);
+      
+      // Add event listener for search input
+      searchInput.addEventListener('input', updateReviewsTable);
+      
+      // Initial table update
+      updateReviewsTable();
+      
+      // Function to update the reviews table based on selections
+      function updateReviewsTable() {
+        const weekIndex = parseInt(document.getElementById('reviews-week-select').value);
+        const selectedCategories = sortedCategories.filter(category => 
+          categorySelectorContainer.categoryCheckboxes[category].checked
+        );
+        const selectedRating = document.getElementById('reviews-rating-select').value;
+        const selectedWeek = availableWeeks[weekIndex];
+        
+        // Get the reviews file for the selected week
+        fetch(selectedWeek.file)
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('Network response was not ok');
+            }
+            return response.json();
+          })
+          .then(reviewsData => {
+            const tableContainer = document.getElementById('reviews-table-container');
+            
+            // Filter reviews based on selected categories from the multi-select dropdown
+            let filteredReviews = [];
+            
+            if (selectedCategories.length > 0) {
+              selectedCategories.forEach(category => {
+                if (reviewsData[category]) {
+                  // Add category information to each review
+                  const categoryReviews = reviewsData[category].map(review => ({
+                    ...review,
+                    sourceCategory: category
+                  }));
+                  filteredReviews = filteredReviews.concat(categoryReviews);
+                }
+              });
+            } else {
+              // If no categories are selected, show no reviews
+              filteredReviews = [];
+            }
+            
+            // Filter by rating if a specific rating is selected
+            if (selectedRating !== 'All') {
+              const ratingValue = parseInt(selectedRating);
+              filteredReviews = filteredReviews.filter(review => review.rating === ratingValue);
+            }
+            
+            // Filter by search text if provided
+            const searchText = document.getElementById('reviews-search-input').value.trim().toLowerCase();
+            if (searchText) {
+              filteredReviews = filteredReviews.filter(review => {
+                // Search in both original text and translated text
+                const originalText = (review.text || '').toLowerCase();
+                const translatedText = (review.translated || '').toLowerCase();
+                const deviceText = (review.device || '').toLowerCase();
+                const versionText = (review.version || '').toLowerCase();
+                
+                return originalText.includes(searchText) || 
+                       translatedText.includes(searchText) ||
+                       deviceText.includes(searchText) ||
+                       versionText.includes(searchText);
+              });
+            }
+            
+            // Create the table
+            if (filteredReviews.length === 0) {
+              tableContainer.innerHTML = '<div class="no-reviews">No reviews found for the selected criteria.</div>';
+            } else {
+              const table = document.createElement('table');
+              table.className = 'reviews-table';
+              
+              // Create table header
+              const thead = document.createElement('thead');
+              const headerRow = document.createElement('tr');
+              
+              const headers = ['Rating', 'Category', 'Device', 'Version', 'Review Text'];
+              headers.forEach(headerText => {
+                const th = document.createElement('th');
+                th.textContent = headerText;
+                headerRow.appendChild(th);
+              });
+              
+              thead.appendChild(headerRow);
+              table.appendChild(thead);
+              
+              // Create table body
+              const tbody = document.createElement('tbody');
+              
+              filteredReviews.forEach(review => {
+                const row = document.createElement('tr');
+                
+                
+                // Rating column with stars
+                const ratingCell = document.createElement('td');
+                ratingCell.className = 'review-rating';
+                for (let i = 0; i < review.rating; i++) {
+                  const star = document.createElement('span');
+                  star.className = 'star';
+                  star.textContent = '★';
+                  ratingCell.appendChild(star);
+                }
+                row.appendChild(ratingCell);
+                
+                // Category column
+                const categoryCell = document.createElement('td');
+                // Use the source category that we tracked during filtering
+                const reviewCategory = review.sourceCategory || 'Unknown';
+                categoryCell.textContent = reviewCategory;
+                row.appendChild(categoryCell);
+                
+                // Device column
+                const deviceCell = document.createElement('td');
+                deviceCell.textContent = review.device;
+                row.appendChild(deviceCell);
+                
+                // Version column
+                const versionCell = document.createElement('td');
+                versionCell.textContent = review.version;
+                row.appendChild(versionCell);
+                
+                // Review text column
+                const textCell = document.createElement('td');
+                textCell.className = 'review-text';
+                
+                // Use translated text if available, otherwise use original text
+                const reviewText = review.translated ? review.translated : review.text;
+                textCell.textContent = reviewText;
+                
+                row.appendChild(textCell);
+                
+                tbody.appendChild(row);
+              });
+              
+              table.appendChild(tbody);
+              tableContainer.innerHTML = '';
+              tableContainer.appendChild(table);
+            }
+          })
+          .catch(error => {
+            console.error('Error loading reviews data:', error);
+            document.getElementById('reviews-table-container').innerHTML = `
+              <div class="error">
+                <h3>Error Loading Reviews</h3>
+                <p>Could not load the reviews data for the selected week.</p>
+                <p>Error details: ${error.message}</p>
+              </div>
+            `;
+          });
+      }
+    }
+  </script>
+
+</body>
+</html>
