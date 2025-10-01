@@ -67,40 +67,70 @@ class OpenAIClient:
       self.logger.error(f"Translation failed for text: {text[:50]}... Error: {e}")
       raise
 
-  def classify(self, rating: int, text: str, categories: Dict[str, str]) -> str:
+  def classify(self, rating: int, text: str, categories: Dict[str, str], examples: list = None) -> str:
     """Classify review text into predefined categories"""
     self.logger.debug(f"Classifying review (rating: {rating}): {text[:50]}...")
-    
+
     category_text = "\n".join(f"{key}: {desc}" for key, desc in categories.items())
+
+    # Build few-shot examples section
+    examples_text = ""
+    if examples:
+      examples_text = "\nHere are some examples to guide your classifications:\n\n"
+      for i, example in enumerate(examples, 1):
+        examples_text += f"Example {i}:\n"
+        examples_text += f"Rating: {example['rating']}/5\n"
+        examples_text += f"Review: \"{example['review']}\"\n"
+        examples_text += f"Classification: {example['classification']}\n\n"
+
     messages = [
       {
         "role": "user",
         "content": [
           {
             "type": "text",
-            "text": 
-f"""The following is a review from Google Play Store for the Firefox browser with a star rating of {rating}/5.  If the review is mostly positive, simply return 'Satisfied' for your classification.  If there are negative complaints in the review, I want to classify it into the following categories, or use the category "Other" if none match.  More than one category can apply, return a comma separated list.  Only use Other if no other categories apply.
+            "text":
+f"""You are classifying a Google Play Store review for the Firefox browser with a star rating of {rating}/5.
 
-For website-specific issues, use these exact formats:
-- YouTube (not youtube, Youtube, or youtube.com)
-- Facebook (not facebook, FB, or facebook.com)
-- Google (not google, google.com, or Google.com)
-- Reddit (not reddit, reddit.com)
-- Instagram (not instagram, IG)
-- Twitter (not twitter, X, twitter.com)
-- TikTok (not tiktok, Tiktok)
-- Netflix (not netflix)
-- Amazon (not amazon, amazon.com)
-- WhatsApp (not whatsapp, Whatsapp)
+CLASSIFICATION RULES:
+1. If the review is mostly positive with no complaints, return 'Satisfied'
+2. If there are negative complaints, classify them into the categories below
+3. Multiple categories can apply - return a comma-separated list
+4. IMPORTANT: If the user mentions a specific website having problems (like videos not playing on YouTube, Facebook not loading, etc.), you MUST include that website as a category
+5. Only use 'Other' if no other categories apply
 
-For other websites, use proper case format: first letter capitalized, no domain extensions (.com, .org, etc).
+WEBSITE-SPECIFIC ISSUES:
+When users report problems with specific websites, ALWAYS add the website name as a category in addition to the technical category.
 
-Categories:
+Use these EXACT formats for common websites:
+- YouTube (for youtube, Youtube, youtube.com, yt, etc.)
+- Facebook (for facebook, FB, fb, facebook.com, etc.)
+- Google (for google, google.com, Google.com, etc.)
+- Reddit (for reddit, reddit.com, etc.)
+- Instagram (for instagram, IG, ig, insta, etc.)
+- Twitter (for twitter, X, x.com, twitter.com, etc.)
+- TikTok (for tiktok, Tiktok, etc.)
+- Netflix (for netflix, etc.)
+- Amazon (for amazon, amazon.com, etc.)
+- WhatsApp (for whatsapp, Whatsapp, etc.)
+
+For other websites: use proper case (first letter capitalized, no .com/.org extensions)
+
+Examples of website categorization:
+- "YouTube videos won't play" → Youtube, Video
+- "Facebook keeps crashing" → Facebook, Crash
+- "Instagram stories don't load" → Instagram, Webcompat
+- "Can't watch Netflix" → Netflix, Video
+
+TECHNICAL CATEGORIES:
 {category_text}
+{examples_text}
+Now classify this review:
 
-Review:
-{text}
-"""
+Rating: {rating}/5
+Review: {text}
+
+Classification:"""
           },
         ]
       }

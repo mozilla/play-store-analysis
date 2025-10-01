@@ -425,13 +425,13 @@
       const heading = document.createElement('h2');
       heading.textContent = 'Overview';
       container.appendChild(heading);
-      
-      // Create container for the positive vs negative chart
-      const overallChartContainer = document.createElement('div');
-      overallChartContainer.className = 'chart-container';
-      overallChartContainer.innerHTML = '<canvas id="overallChart"></canvas>';
-      container.appendChild(overallChartContainer);
-      
+
+      // Create container for the ratings chart
+      const ratingsChartContainer = document.createElement('div');
+      ratingsChartContainer.className = 'chart-container';
+      ratingsChartContainer.innerHTML = '<canvas id="ratingsChart"></canvas>';
+      container.appendChild(ratingsChartContainer);
+
       // Create container for the categories chart with controls
       const categoriesChartWithControls = document.createElement('div');
       categoriesChartWithControls.className = 'chart-with-controls';
@@ -458,23 +458,26 @@
       container.appendChild(categoriesChartWithControls);
       
       // Generate the charts
-      generateOverallChart();
+      generateRatingsChart();
       generateCategoriesChart();
     }
 
-    // Function to generate the overall positive vs negative chart
-    function generateOverallChart() {
-      const ctx = document.getElementById('overallChart').getContext('2d');
-      
+    // Function to generate the ratings over time chart
+    function generateRatingsChart() {
+      const ctx = document.getElementById('ratingsChart').getContext('2d');
+
       // Prepare data for the chart
       const labels = reviewData.map(item => item.startDate);
-      const positiveData = reviewData.map(item => item.PositiveCount);
-      const negativeData = reviewData.map(item => item.NegativeCount);
-      
+      const rating1Data = reviewData.map(item => item.Ratings ? item.Ratings['1'] : 0);
+      const rating2Data = reviewData.map(item => item.Ratings ? item.Ratings['2'] : 0);
+      const rating3Data = reviewData.map(item => item.Ratings ? item.Ratings['3'] : 0);
+      const rating4Data = reviewData.map(item => item.Ratings ? item.Ratings['4'] : 0);
+      const rating5Data = reviewData.map(item => item.Ratings ? item.Ratings['5'] : 0);
+
       // Check if we need to add annotation for selected week
       const urlParams = getUrlParams();
       const annotations = {};
-      
+
       if (urlParams.week) {
         const weekIndex = labels.indexOf(urlParams.week);
         if (weekIndex !== -1) {
@@ -493,7 +496,7 @@
           };
         }
       }
-      
+
       // Create the chart
       new Chart(ctx, {
         type: 'line',
@@ -501,8 +504,8 @@
           labels: labels,
           datasets: [
             {
-              label: 'Positive',
-              data: positiveData,
+              label: '5 Stars',
+              data: rating5Data,
               borderColor: 'rgba(40, 167, 69, 1)',
               backgroundColor: 'rgba(40, 167, 69, 0.1)',
               borderWidth: 2,
@@ -510,8 +513,35 @@
               tension: 0.1
             },
             {
-              label: 'Negative',
-              data: negativeData,
+              label: '4 Stars',
+              data: rating4Data,
+              borderColor: 'rgba(100, 200, 100, 1)',
+              backgroundColor: 'rgba(100, 200, 100, 0.1)',
+              borderWidth: 2,
+              fill: true,
+              tension: 0.1
+            },
+            {
+              label: '3 Stars',
+              data: rating3Data,
+              borderColor: 'rgba(255, 193, 7, 1)',
+              backgroundColor: 'rgba(255, 193, 7, 0.1)',
+              borderWidth: 2,
+              fill: true,
+              tension: 0.1
+            },
+            {
+              label: '2 Stars',
+              data: rating2Data,
+              borderColor: 'rgba(255, 152, 0, 1)',
+              backgroundColor: 'rgba(255, 152, 0, 0.1)',
+              borderWidth: 2,
+              fill: true,
+              tension: 0.1
+            },
+            {
+              label: '1 Star',
+              data: rating1Data,
               borderColor: 'rgba(220, 53, 69, 1)',
               backgroundColor: 'rgba(220, 53, 69, 0.1)',
               borderWidth: 2,
@@ -526,7 +556,7 @@
           plugins: {
             title: {
               display: true,
-              text: 'Positive vs Negative Reviews Over Time',
+              text: 'Ratings Over Time',
               font: {
                 size: 16
               }
@@ -629,6 +659,60 @@
       weekComparisonContainer.appendChild(histogramContainer);
       container.appendChild(weekComparisonContainer);
       
+      // Set initial selections based on paramWeek after both selectors are created
+      if (paramWeek) {
+        const weekIndex = availableWeeks.findIndex(week => week.startDate === paramWeek);
+        if (weekIndex !== -1) {
+          // Set right column to the specified week
+          document.getElementById('week-select-1').selectedIndex = weekIndex;
+
+          // Find the actual previous week by date (7 days before)
+          const currentWeekDate = new Date(paramWeek);
+          const previousWeekDate = new Date(currentWeekDate);
+          previousWeekDate.setDate(currentWeekDate.getDate() - 7);
+
+          // Format the previous week date as YYYY-MM-DD
+          const previousWeekString = previousWeekDate.toISOString().split('T')[0];
+
+          // Find the week that matches or is closest to the previous week
+          const previousWeekIndex = availableWeeks.findIndex(week => week.startDate === previousWeekString);
+
+          if (previousWeekIndex !== -1) {
+            // Found exact match for previous week
+            document.getElementById('week-select-0').selectedIndex = previousWeekIndex;
+          } else if (weekIndex > 0) {
+            // Fallback to array position if no exact match
+            document.getElementById('week-select-0').selectedIndex = weekIndex - 1;
+          } else {
+            document.getElementById('week-select-0').selectedIndex = 0;
+          }
+        }
+      } else {
+        // No paramWeek specified - default to comparing the two latest weeks
+        const latestWeekIndex = availableWeeks.length - 1;
+        if (latestWeekIndex >= 0) {
+          document.getElementById('week-select-1').selectedIndex = latestWeekIndex;
+
+          // Find the week that's 7 days before the latest week
+          const latestWeek = availableWeeks[latestWeekIndex];
+          const latestWeekDate = new Date(latestWeek.startDate);
+          const previousWeekDate = new Date(latestWeekDate);
+          previousWeekDate.setDate(latestWeekDate.getDate() - 7);
+          const previousWeekString = previousWeekDate.toISOString().split('T')[0];
+
+          const previousWeekIndex = availableWeeks.findIndex(week => week.startDate === previousWeekString);
+
+          if (previousWeekIndex !== -1) {
+            document.getElementById('week-select-0').selectedIndex = previousWeekIndex;
+          } else if (latestWeekIndex > 0) {
+            // Fallback to array position if no exact match
+            document.getElementById('week-select-0').selectedIndex = latestWeekIndex - 1;
+          } else {
+            document.getElementById('week-select-0').selectedIndex = 0;
+          }
+        }
+      }
+      
       // Generate initial pie charts and histogram
       updatePieCharts();
       
@@ -646,33 +730,68 @@
           option.textContent = week.label;
           select.appendChild(option);
         });
-        
-        // Set default selection based on URL parameter or latest two weeks
-        if (paramWeek && columnIndex === 1) {
-          // For the right column (comparison week), find the specified week
-          const weekIndex = weeks.findIndex(week => week.startDate === paramWeek);
-          if (weekIndex !== -1) {
-            select.selectedIndex = weekIndex;
-            // Set left column to the week before (if available)
-            const leftSelect = document.getElementById('week-select-0');
-            if (leftSelect && weekIndex > 0) {
-              leftSelect.selectedIndex = weekIndex - 1;
-            }
-          } else {
-            select.selectedIndex = columnIndex;
-          }
-        } else {
-          select.selectedIndex = columnIndex;
-        }
+
+        // Set a temporary default to avoid showing the first week
+        // This will be overridden by the logic after both selectors are in the DOM
+        select.selectedIndex = weeks.length - 1;
         
         // Add event listener for selection change
         select.addEventListener('change', () => {
-          updatePieCharts();
-          // Update URL with the selected week for the comparison column
+          // When a week is selected, automatically set the other column to the adjacent week
           if (columnIndex === 1) {
-            const selectedWeek = availableWeeks[select.selectedIndex];
+            // Right column changed - set left column to previous week (7 days before)
+            const selectedIndex = parseInt(select.selectedIndex);
+            const selectedWeek = availableWeeks[selectedIndex];
+            const leftSelect = document.getElementById('week-select-0');
+            
+            if (leftSelect) {
+              // Calculate the date 7 days before
+              const currentWeekDate = new Date(selectedWeek.startDate);
+              const previousWeekDate = new Date(currentWeekDate);
+              previousWeekDate.setDate(currentWeekDate.getDate() - 7);
+              const previousWeekString = previousWeekDate.toISOString().split('T')[0];
+              
+              // Find the week that matches the previous week date
+              const previousWeekIndex = availableWeeks.findIndex(week => week.startDate === previousWeekString);
+              
+              if (previousWeekIndex !== -1) {
+                leftSelect.selectedIndex = previousWeekIndex;
+              } else if (selectedIndex > 0) {
+                // Fallback to array position if no exact match
+                leftSelect.selectedIndex = selectedIndex - 1;
+              }
+            }
             updateUrl('week', selectedWeek.startDate);
+          } else if (columnIndex === 0) {
+            // Left column changed - set right column to next week (7 days after)
+            const selectedIndex = parseInt(select.selectedIndex);
+            const selectedWeek = availableWeeks[selectedIndex];
+            const rightSelect = document.getElementById('week-select-1');
+            
+            if (rightSelect) {
+              // Calculate the date 7 days after
+              const currentWeekDate = new Date(selectedWeek.startDate);
+              const nextWeekDate = new Date(currentWeekDate);
+              nextWeekDate.setDate(currentWeekDate.getDate() + 7);
+              const nextWeekString = nextWeekDate.toISOString().split('T')[0];
+              
+              // Find the week that matches the next week date
+              const nextWeekIndex = availableWeeks.findIndex(week => week.startDate === nextWeekString);
+              
+              if (nextWeekIndex !== -1) {
+                rightSelect.selectedIndex = nextWeekIndex;
+              } else if (selectedIndex < availableWeeks.length - 1) {
+                // Fallback to array position if no exact match
+                rightSelect.selectedIndex = selectedIndex + 1;
+              }
+              
+              // Update URL with the right column week
+              const rightSelectedIndex = parseInt(rightSelect.selectedIndex);
+              const rightSelectedWeek = availableWeeks[rightSelectedIndex];
+              updateUrl('week', rightSelectedWeek.startDate);
+            }
           }
+          updatePieCharts();
         });
         
         selectorContainer.appendChild(select);
@@ -841,6 +960,15 @@
                 top: 0,
                 bottom: 0
               }
+            },
+            onClick: (event, elements) => {
+              if (elements.length > 0) {
+                const dataIndex = elements[0].index;
+                const clickedCategory = sortedCategories[dataIndex];
+                const currentParams = getUrlParams();
+                updateUrl('week', currentParams.week, [clickedCategory]);
+                window.location.reload();
+              }
             }
           }
         });
@@ -923,7 +1051,7 @@
         });
       }
     }
-    
+
     // Function to generate the categories chart
     function generateCategoriesChart() {
       const ctx = document.getElementById('categoriesChart').getContext('2d');
@@ -995,8 +1123,10 @@
         };
       });
       
-      // Initially show top 10 categories
-      const initialVisibleCategories = new Set(sortedCategories.slice(0, 10));
+      // Initially show top 10 categories (excluding Satisfied)
+      const initialVisibleCategories = new Set(
+        sortedCategories.filter(cat => cat !== 'Satisfied').slice(0, 10)
+      );
       
       // Generate datasets for all categories
       const allDatasets = sortedCategories.map(category => {

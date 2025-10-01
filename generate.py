@@ -7,7 +7,7 @@ import logging
 from typing import Tuple, Dict, List
 import pandas as pd
 
-from config import CATEGORIES, DEFAULT_MODEL, DATA_DIR, RESULTS_DIR, LOG_LEVEL, LOG_FORMAT
+from config import CATEGORIES, CLASSIFICATION_EXAMPLES, DEFAULT_MODEL, DATA_DIR, RESULTS_DIR, LOG_LEVEL, LOG_FORMAT
 from lib.reviews import PlayStoreReviews
 from lib.openai import OpenAIClient as LLMClient
 from lib.validation import validate_review_data, validate_date_range, validate_classification
@@ -66,7 +66,22 @@ def classify_reviews(reviews: pd.DataFrame, model: LLMClient) -> pd.DataFrame:
         logger.debug(f"Rating = {rating}")
         logger.debug(f"{row['Reviewer_Language']}: {row['Review_Text'][:100]}...")
 
-        # Translate if not English
+        # For 4-5 star reviews, skip classification and just mark as Satisfied
+        if rating >= 4:
+            reviews.at[index, 'Classification'] = 'Satisfied'
+            logger.debug(f"High rating ({rating} stars) - automatically classified as Satisfied")
+
+            # Still translate if needed for consistency
+            if src_lang != 'en':
+                try:
+                    text = model.translate(src_lang, 'en', row['Review_Text'])
+                    reviews.at[index, 'Translated_Text'] = text
+                    logger.debug(f"Translated: {text[:100]}...")
+                except Exception as e:
+                    logger.error(f"Translation failed for review {index}: {e}")
+            continue
+
+        # For 1-3 star reviews, translate and classify
         if src_lang != 'en':
             try:
                 text = model.translate(src_lang, 'en', row['Review_Text'])
@@ -79,14 +94,28 @@ def classify_reviews(reviews: pd.DataFrame, model: LLMClient) -> pd.DataFrame:
 
         # Classify the review
         try:
-            classification = model.classify(rating, text, CATEGORIES)
+            classification = model.classify(rating, text, CATEGORIES, CLASSIFICATION_EXAMPLES)
+
+            # Enhance classification with website detection
+            from lib.utils import enhance_classification_with_websites
+            original_classification = classification
+            classification = enhance_classification_with_websites(classification, text)
+
+            if classification != original_classification:
+                logger.info(f"Enhanced classification for review {index}: {original_classification} → {classification}")
+
             reviews.at[index, 'Classification'] = classification
             logger.debug(f"Classification: |{classification}|")
-            
+
             # Validate classification
             if not validate_classification(classification, set(CATEGORIES.keys())):
                 logger.warning(f"Invalid classification for review {index}: {classification}")
-                
+
+            # Validate rating-based classification logic
+            from lib.validation import validate_classification_logic
+            if not validate_classification_logic(rating, classification):
+                logger.warning(f"Suspicious classification for review {index}: rating={rating}, classification={classification}")
+
         except Exception as e:
             logger.error(f"Classification failed for review {index}: {e}")
             reviews.at[index, 'Classification'] = 'Other'

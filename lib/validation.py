@@ -119,3 +119,51 @@ def _is_website_category(category: str) -> bool:
         2 <= len(category) <= 20 and
         category.replace('.', '').isalnum()
     )
+
+
+def validate_classification_logic(rating: int, classification: str) -> bool:
+    """
+    Validate that classification makes logical sense given the star rating.
+
+    Returns False if classification is suspicious (e.g., high rating with negative categories).
+    This doesn't prevent the classification but logs a warning for review.
+    """
+    if not classification:
+        return True
+
+    # Define negative categories that shouldn't appear with high ratings
+    negative_categories = {
+        'Crash', 'Slow', 'Battery', 'Memory', 'Pageload', 'Webcompat',
+        'Networking', 'Stuttering', 'Scrolling', 'Startup', 'UI',
+        'Downloads', 'Autofill', 'Search', 'History', 'Audio', 'Video'
+    }
+
+    categories = [cat.strip() for cat in classification.split(',')]
+
+    # Check for suspicious patterns
+    # Pattern 1: High rating (4-5 stars) with negative categories
+    if rating >= 4:
+        found_negative = [cat for cat in categories if cat in negative_categories]
+        if found_negative:
+            logger.warning(
+                f"Suspicious: High rating ({rating} stars) with negative categories: {found_negative}"
+            )
+            return False
+
+    # Pattern 2: Low rating (1-2 stars) classified as "Satisfied" only
+    if rating <= 2 and categories == ['Satisfied']:
+        logger.warning(
+            f"Suspicious: Low rating ({rating} stars) classified only as 'Satisfied'"
+        )
+        return False
+
+    # Pattern 3: 5-star rating with only negative categories (no Satisfied)
+    if rating == 5 and 'Satisfied' not in categories:
+        found_negative = [cat for cat in categories if cat in negative_categories]
+        if found_negative and len(found_negative) == len(categories):
+            logger.warning(
+                f"Suspicious: 5-star rating with only negative categories: {found_negative}"
+            )
+            return False
+
+    return True
