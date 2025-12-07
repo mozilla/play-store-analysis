@@ -16,5 +16,5 @@ RUN conda create --name play-store-analysis python=3.10 && \
     conda run -n play-store-analysis pip install --no-cache-dir -r requirements.txt
 
 COPY . .
-ENV BUCKET_URL="gs://moz-fx-data-prot-nonprod-c3a1-protodash/perf-reports/gps"
+ENV BUCKET_URL="gs://protosaur-stage-iap-static-website/perf-reports/gps"
 CMD ["conda", "run", "--no-capture-output", "-n", "play-store-analysis", "/app/entry.sh"]
