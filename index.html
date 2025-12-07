@@ -965,9 +965,10 @@
               if (elements.length > 0) {
                 const dataIndex = elements[0].index;
                 const clickedCategory = sortedCategories[dataIndex];
-                const currentParams = getUrlParams();
-                updateUrl('week', currentParams.week, [clickedCategory]);
-                window.location.reload();
+                const rightSelectIndex = parseInt(document.getElementById('week-select-1').value);
+                const selectedWeek = availableWeeks[rightSelectIndex].startDate;
+                updateUrl('reviews', selectedWeek, [clickedCategory]);
+                showContent('reviews', selectedWeek);
               }
             }
           }
